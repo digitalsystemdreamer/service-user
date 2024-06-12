@@ -3,15 +3,16 @@ package com.digitalsystemdreamer.serviceuser.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
 import java.util.List;
 
 @AllArgsConstructor
 @Data
-public class MembershipDTO {
+public class MembershipDTO extends BaseDTO{
 
-    private int membershipId;
+    private Integer membershipId;
     private String name;
     private String description;
     private LocalDate validFrom;
