@@ -1,11 +1,15 @@
 package com.digitalsystemdreamer.serviceuser.service.impl;
 
 import com.digitalsystemdreamer.serviceuser.cache.CacheType;
+import com.digitalsystemdreamer.serviceuser.dto.BaseDTO;
 import com.digitalsystemdreamer.serviceuser.dto.FacilityDTO;
 import com.digitalsystemdreamer.serviceuser.dto.MembershipDTO;
+import com.digitalsystemdreamer.serviceuser.repository.cache.FacilityRepo;
 import com.digitalsystemdreamer.serviceuser.service.IRefDataService;
-import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NonNull;
@@ -15,7 +19,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -24,34 +27,45 @@ import java.util.List;
 @Data
 public class RefDataServiceImpl implements IRefDataService {
 
+    private FacilityRepo facilityRepo;
+
     private RedisTemplate redisTemplate;
 
     @Override
-    public <T> List<T> saveDataInCache(@NonNull CacheType type, @NonNull List<T> data) {
+    public <T> void saveDataInCache(@NonNull CacheType type, @NonNull List<T> data) {
 
         if(type == CacheType.FACILITIES) {
             log.info("Caching {} Facility  to Redis Cache.. ", data.size());
-            redisTemplate.opsForValue().set(CacheType.FACILITIES.getValue(), data.toString(), Duration.ofMinutes(1));
+            redisTemplate.opsForValue().set(CacheType.FACILITIES.getValue(), new Gson().toJson(data), Duration.ofMinutes(20));
+
         } else if(type == CacheType.MEMBERSHIP) {
             log.info("Caching {} Membership  to Redis Cache.. ", data.size());
-            redisTemplate.opsForValue().set(CacheType.MEMBERSHIP.getValue(), data.toString(), Duration.ofMinutes(1));
+            redisTemplate.opsForValue().set(CacheType.MEMBERSHIP.getValue(), new Gson().toJson(data), Duration.ofMinutes(20));
         }
-        return List.of();
+
     }
 
     @Override
-    public <T> List<T> getFromCache(@NonNull CacheType type) throws IOException {
+    public BaseDTO getFromCache(@NonNull CacheType type, Integer id) throws IOException {
 
         ObjectMapper mapper = new ObjectMapper();
-        T[] list = switch (type) {
-            case FACILITIES -> (T[]) mapper.readValue((JsonParser) redisTemplate.opsForValue().get(CacheType.FACILITIES.getValue()), FacilityDTO[].class);
-            case MEMBERSHIP -> (T[]) mapper.readValue((JsonParser) redisTemplate.opsForValue().get(CacheType.MEMBERSHIP.getValue()), MembershipDTO[].class);
-            case GOALS -> (T[]) mapper.readValue((JsonParser) redisTemplate.opsForValue().get(CacheType.MEMBERSHIP.getValue()), MembershipDTO[].class);
-            case QUESTIONNAIRE -> (T[]) mapper.readValue((JsonParser) redisTemplate.opsForValue().get(CacheType.MEMBERSHIP.getValue()), MembershipDTO[].class);
+        mapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+        String cachedValue = (String) redisTemplate.opsForValue().get(CacheType.FACILITIES.getValue());
 
+         BaseDTO dto = switch (type) {
+            case FACILITIES -> {
+               yield mapper.readValue(cachedValue, new TypeReference<List<FacilityDTO>>(){})
+                         .stream().filter(facilityDTO -> facilityDTO.getFacilityId().equals(id)).findFirst().orElseThrow();
+
+            }
+            case MEMBERSHIP -> {
+                yield mapper.readValue(cachedValue, new TypeReference<List<MembershipDTO>>(){})
+                        .stream().filter(membershipDTO -> membershipDTO.getMembershipId().equals(id)).findFirst().orElseThrow();
+            }
+             default -> throw new IllegalStateException("Unexpected value: " + type);
         };
 
-        //ObjectMapper mapper = new ObjectMapper();
-        return Arrays.asList(list);
+        return dto;
     }
+
 }

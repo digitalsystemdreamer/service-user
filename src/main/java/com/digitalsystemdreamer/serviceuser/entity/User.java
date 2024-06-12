@@ -3,7 +3,6 @@ package com.digitalsystemdreamer.serviceuser.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.experimental.SuperBuilder;
 import org.hibernate.envers.Audited;
 
 import java.time.LocalDate;
@@ -12,7 +11,6 @@ import java.util.List;
 @Entity
 @Audited
 @Data
-@SuperBuilder
 @Table(name = "User", schema = "Users")
 public class User extends BaseEntity {
 

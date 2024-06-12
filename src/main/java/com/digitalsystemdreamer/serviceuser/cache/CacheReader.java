@@ -32,12 +32,11 @@ public class CacheReader {
     @Autowired
     private IRefDataService refDataService;
 
-
     @EventListener(ApplicationReadyEvent.class)
     public void readCache() {
 
         readFaciltiesRefData();
-        readMembershipRefData();
+        //readMembershipRefData();
 
     }
 
@@ -53,36 +52,26 @@ public class CacheReader {
                 new ParameterizedTypeReference<List<MembershipDTO>>() {
                 }).getBody();
 
-        /*List<MembershipDTO> mebershipList = new ArrayList<>();
-        mebershipList.add(new MembershipDTO(1, "Yoga", "Yoga, Aur Kya!!!!!!", null,
-                null, null, null,null));
-        mebershipList.add(new MembershipDTO(2, "Swimming", "Swimming, Ye bhi nai pata!!!!!!",
-                null, null, null, null, null));*/
-
         refDataService.saveDataInCache(CacheType.MEMBERSHIP, mebershipList);
         log.info("Loaded Membership ref data into Redis Cache..");
 
     }
 
-    private void readFaciltiesRefData() {
+    public void readFaciltiesRefData() {
 
         log.debug("Started loading Facilities ref data..");
         RestTemplate facilitiesRestTemplate = new RestTemplate();
 
-        List<FacilityDTO> facilitiesList =  facilitiesRestTemplate.exchange(
+        List<FacilityDTO> facilitiesList = facilitiesRestTemplate.exchange(
                 facilitiesServiceModel.getUrl(),
                 HttpMethod.GET,
                 null,
                 new ParameterizedTypeReference<List<FacilityDTO>>() {
         }).getBody();
 
-        /*List<FacilityDTO> facilitiesList = new ArrayList<>();
-        facilitiesList.add(new FacilityDTO(1, "Yoga", "Yoga, Aur Kya!!!!!!"));
-        facilitiesList.add(new FacilityDTO(2, "Swimming", "Swimming, Ye bhi nai pata!!!!!!"));*/
-
         refDataService.saveDataInCache(CacheType.FACILITIES, facilitiesList);
+
         log.info("Loaded Facilities ref data into Redis Cache..");
-        
     }
 
 }
